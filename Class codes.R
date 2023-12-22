@@ -62,3 +62,35 @@ venice.gev.quad <- gev.fit(venice.anmax, ydat=ti2, mul=c(1,2), show=F) # nonstat
 
 gev.diag(venice.gev)
 gev.prof(venice.gev, m=100, xlow=-10, xup=90, conf=0.95, nint=100)
+
+# December 21 class ----
+library(ismev)
+data("fremantle")
+head(fremantle)
+par(mfrow = c(1,2))
+plot(fremantle$SeaLevel, xlab='SOI', ylab='Sea level (m)')
+plot(fremantle$SOI, type='l', xlab='Year', ylab='Sea level (m)')
+par(mfrow = c(1,1))
+
+covar <- cbind(fremantle$SOI, seq(1, 86, 1)) # 2x86 covariance matrix
+A <- gev.fit(fremantle$SeaLevel) # stationary model
+B <- gev.fit(fremantle[,2], ydat=covar, mul=1, show=F) # SOI covariate
+C <- gev.fit(fremantle[,2], ydat=covar, mul=2, show=F) # time covariate
+D <- gev.fit(fremantle[,2], ydat=covar, mul=c(1,2), show=F) # both SOI and time
+
+2*(-B$nllh-(-A$nllh)) # D=7.289023, significant improvement over the stationary model
+2*(-C$nllh-(-A$nllh)) # D=12.44618, dependence on time gives a more significant improvement than allowing for a dependence on SOI
+2*(-D$nllh-(-C$nllh)) # D=8.071955, we should include both time and SOI as covariates
+
+# Diagnostic plots
+gev.diag(A)
+gev.diag(B)
+gev.diag(C)
+gev.diag(D)
+
+data("rain")
+ti <- matrix(seq(1, 17531, 1), ncol=1, nrow=17531)
+f <- gpd.fit(rain, threshold=30, ydat=ti, sigl=1, siglink=exp, show=F)
+f$mle # [1] 1.8039221883 0.0000196265 0.1977440505, sigma(t)=exp{1.804 + 0.00002t}
+E <- gpd.fit(rain, threshold=30) # stationary model for rain
+2*(-f$nllh-(-E$nllh)) # D=0.9841494, there is no evidence of a (linear) trend in the log–scale parameter.
